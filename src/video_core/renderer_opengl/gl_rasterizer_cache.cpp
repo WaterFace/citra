@@ -1914,8 +1914,8 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
     bool flushed_from_cpu = false;
     std::set<u32> formats;
     while (true) {
-        const auto it = surface->invalid_regions.find(validate_interval);
-        if (it == surface->invalid_regions.end())
+        const auto it = validate_regions.begin();
+        if (it == validate_regions.end())
             break;
 
         const auto interval = *it & validate_interval;
@@ -1927,7 +1927,7 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
         if (copy_surface != nullptr) {
             SurfaceInterval copy_interval = params.GetCopyableInterval(copy_surface);
             CopySurface(copy_surface, surface, copy_interval);
-            surface->invalid_regions.erase(copy_interval);
+            notify_validated(copy_interval);
             continue;
         }
 
@@ -1947,7 +1947,7 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
                 ConvertD24S8toABGR(reinterpret_surface->texture.handle, src_rect,
                                    surface->texture.handle, dest_rect);
 
-                surface->invalid_regions.erase(convert_interval);
+                notify_validated(convert_interval);
                 continue;
             }
         }
@@ -1977,7 +1977,7 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
         surface->LoadGLBuffer(params.addr, params.end);
         surface->UploadGLTexture(surface->GetSubRect(params), read_framebuffer.handle,
                                  draw_framebuffer.handle);
-        surface->invalid_regions.erase(params.GetInterval());
+        notify_validated(params.GetInterval());
         flushed_from_cpu = true;
     }
 
