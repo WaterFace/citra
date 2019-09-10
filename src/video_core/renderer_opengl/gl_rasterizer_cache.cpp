@@ -1864,8 +1864,8 @@ void RasterizerCacheOpenGL::ValidateSurface(const Surface& surface, PAddr addr, 
                   "Validating surface with pixel format {} and found surfaces created on the gpu "
                   "that have the following pixel formats: {}",
                   PixelFormatAsString(surface->pixel_format), s);
-        Core::Telemetry().AddField(Telemetry::FieldType::Session, "VideoCore_FormatReinterpret",
-                                   true);
+        // Core::Telemetry().AddField(Telemetry::FieldType::Session, "VideoCore_FormatReinterpret",
+        //                            true);
     }
 }
 
