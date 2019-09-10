@@ -32,6 +32,8 @@ std::function<void()> g_screenshot_complete_callback;
 Layout::FramebufferLayout g_screenshot_framebuffer_layout;
 
 Memory::MemorySystem* g_memory;
+// Ignore Format Reinterpretation
+std::atomic<bool> g_use_format_reinterpret_hack;
 
 /// Initialize the video core
 Core::System::ResultStatus Init(Frontend::EmuWindow& emu_window, Memory::MemorySystem& memory) {

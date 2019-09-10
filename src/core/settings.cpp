@@ -28,6 +28,7 @@ void Apply() {
     VideoCore::g_shader_jit_enabled = values.use_shader_jit;
     VideoCore::g_hw_shader_enabled = values.use_hw_shader;
     VideoCore::g_hw_shader_accurate_mul = values.shaders_accurate_mul;
+    VideoCore::g_use_format_reinterpret_hack = values.use_format_reinterpret_hack;
 
     if (VideoCore::g_renderer) {
         VideoCore::g_renderer->UpdateCurrentFramebufferLayout();
@@ -85,6 +86,7 @@ void LogSettings() {
     LogSetting("Renderer_FilterMode", Settings::values.filter_mode);
     LogSetting("Stereoscopy_Render3d", static_cast<int>(Settings::values.render_3d));
     LogSetting("Stereoscopy_Factor3d", Settings::values.factor_3d);
+    LogSetting("Renderer_FormatReinterpretHack", Settings::values.use_format_reinterpret_hack);
     LogSetting("Layout_LayoutOption", static_cast<int>(Settings::values.layout_option));
     LogSetting("Layout_SwapScreen", Settings::values.swap_screen);
     LogSetting("Audio_EnableDspLle", Settings::values.enable_dsp_lle);
