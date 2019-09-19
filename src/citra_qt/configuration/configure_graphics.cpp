@@ -54,7 +54,7 @@ void ConfigureGraphics::ApplyConfiguration() {
     Settings::values.use_hw_shader = ui->toggle_hw_shader->isChecked();
     Settings::values.shaders_accurate_mul = ui->toggle_accurate_mul->isChecked();
     Settings::values.use_shader_jit = ui->toggle_shader_jit->isChecked();
-    Settings::values.use_disk_shader_cahce = ui->toggle_disk_cache->isChecked();
+    Settings::values.use_disk_shader_cache = ui->toggle_disk_cache->isChecked();
 }
 
 void ConfigureGraphics::RetranslateUI() {
