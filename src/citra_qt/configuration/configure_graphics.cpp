@@ -81,6 +81,23 @@ void ConfigureGraphics::ApplyConfiguration() {
     Settings::values.use_disk_shader_cache = ui->toggle_disk_cache->isChecked();
 }
 
+void ConfigureGraphics::updateShaders(bool anaglyph) {
+    ui->shader_combobox->clear();
+
+    if (anaglyph)
+        ui->shader_combobox->addItem("dubois (builtin)");
+    else
+        ui->shader_combobox->addItem("none (builtin)");
+
+    ui->shader_combobox->setCurrentIndex(0);
+
+    for (const auto& shader : OpenGL::GetPostProcessingShaderList(anaglyph)) {
+        ui->shader_combobox->addItem(QString::fromStdString(shader));
+        if (Settings::values.pp_shader_name == shader)
+            ui->shader_combobox->setCurrentIndex(ui->shader_combobox->count() - 1);
+    }
+}
+
 void ConfigureGraphics::UpdateBackgroundColorButton(const QColor& color) {
     bg_color = color;
 
