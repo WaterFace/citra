@@ -11,6 +11,7 @@
 #include <QFileDialog>
 #include <QFutureWatcher>
 #include <QMessageBox>
+#include <QSysInfo>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QtGui>
 #include <QtWidgets>
@@ -39,6 +40,7 @@
 #include "citra_qt/debugger/graphics/graphics_surface.h"
 #include "citra_qt/debugger/graphics/graphics_tracing.h"
 #include "citra_qt/debugger/graphics/graphics_vertex_shader.h"
+#include "citra_qt/debugger/ipc/recorder.h"
 #include "citra_qt/debugger/lle_service_modules.h"
 #include "citra_qt/debugger/profiler.h"
 #include "citra_qt/debugger/registers.h"
@@ -62,6 +64,9 @@
 #include "common/microprofile.h"
 #include "common/scm_rev.h"
 #include "common/scope_exit.h"
+#ifdef ARCHITECTURE_x86_64
+#include "common/x64/cpu_detect.h"
+#endif
 #include "core/core.h"
 #include "core/dumping/backend.h"
 #include "core/file_sys/archive_extsavedata.h"
@@ -170,6 +175,10 @@ GMainWindow::GMainWindow() : config(new Config()), emu_thread(nullptr) {
 
     LOG_INFO(Frontend, "Citra Version: {} | {}-{}", Common::g_build_fullname, Common::g_scm_branch,
              Common::g_scm_desc);
+#ifdef ARCHITECTURE_x86_64
+    LOG_INFO(Frontend, "Host CPU: {}", Common::GetCPUCaps().cpu_string);
+#endif
+    LOG_INFO(Frontend, "Host OS: {}", QSysInfo::prettyProductName().toStdString());
     UpdateWindowTitle();
 
     show();
@@ -332,6 +341,13 @@ void GMainWindow::InitializeDebugWidgets() {
             [this] { lleServiceModulesWidget->setDisabled(true); });
     connect(this, &GMainWindow::EmulationStopping, waitTreeWidget,
             [this] { lleServiceModulesWidget->setDisabled(false); });
+
+    ipcRecorderWidget = new IPCRecorderWidget(this);
+    addDockWidget(Qt::RightDockWidgetArea, ipcRecorderWidget);
+    ipcRecorderWidget->hide();
+    debug_menu->addAction(ipcRecorderWidget->toggleViewAction());
+    connect(this, &GMainWindow::EmulationStarting, ipcRecorderWidget,
+            &IPCRecorderWidget::OnEmulationStarting);
 }
 
 void GMainWindow::InitializeRecentFileMenuActions() {
@@ -501,6 +517,24 @@ void GMainWindow::RestoreUIState() {
 
     ui.action_Show_Status_Bar->setChecked(UISettings::values.show_status_bar);
     statusBar()->setVisible(ui.action_Show_Status_Bar->isChecked());
+}
+
+void GMainWindow::OnAppFocusStateChanged(Qt::ApplicationState state) {
+    if (!UISettings::values.pause_when_in_background) {
+        return;
+    }
+    if (state != Qt::ApplicationHidden && state != Qt::ApplicationInactive &&
+        state != Qt::ApplicationActive) {
+        LOG_DEBUG(Frontend, "ApplicationState unusual flag: {} ", state);
+    }
+    if (ui.action_Pause->isEnabled() &&
+        (state & (Qt::ApplicationHidden | Qt::ApplicationInactive))) {
+        auto_paused = true;
+        OnPauseGame();
+    } else if (ui.action_Start->isEnabled() && auto_paused && state == Qt::ApplicationActive) {
+        auto_paused = false;
+        OnStartGame();
+    }
 }
 
 void GMainWindow::ConnectWidgetEvents() {
@@ -1091,18 +1125,16 @@ void GMainWindow::OnGameListNavigateToGamedbEntry(u64 program_id,
     QDesktopServices::openUrl(QUrl("https://citra-emu.org/game/" + directory));
 }
 
-void GMainWindow::OnGameListOpenDirectory(QString directory) {
+void GMainWindow::OnGameListOpenDirectory(const QString& directory) {
     QString path;
     if (directory == "INSTALLED") {
-        path =
-            QString::fromStdString(FileUtil::GetUserPath(FileUtil::UserPath::SDMCDir).c_str() +
-                                   std::string("Nintendo "
-                                               "3DS/00000000000000000000000000000000/"
-                                               "00000000000000000000000000000000/title/00040000"));
+        path = QString::fromStdString(FileUtil::GetUserPath(FileUtil::UserPath::SDMCDir) +
+                                      "Nintendo "
+                                      "3DS/00000000000000000000000000000000/"
+                                      "00000000000000000000000000000000/title/00040000");
     } else if (directory == "SYSTEM") {
-        path =
-            QString::fromStdString(FileUtil::GetUserPath(FileUtil::UserPath::NANDDir).c_str() +
-                                   std::string("00000000000000000000000000000000/title/00040010"));
+        path = QString::fromStdString(FileUtil::GetUserPath(FileUtil::UserPath::NANDDir) +
+                                      "00000000000000000000000000000000/title/00040010");
     } else {
         path = directory;
     }
@@ -1114,7 +1146,7 @@ void GMainWindow::OnGameListOpenDirectory(QString directory) {
 }
 
 void GMainWindow::OnGameListAddDirectory() {
-    QString dir_path = QFileDialog::getExistingDirectory(this, tr("Select Directory"));
+    const QString dir_path = QFileDialog::getExistingDirectory(this, tr("Select Directory"));
     if (dir_path.isEmpty())
         return;
     UISettings::GameDir game_dir{dir_path, false, true};
@@ -2030,6 +2062,10 @@ int main(int argc, char* argv[]) {
     Core::System::GetInstance().RegisterImageInterface(std::make_shared<QtImageInterface>());
 
     main_window.show();
+
+    QObject::connect(&app, &QGuiApplication::applicationStateChanged, &main_window,
+                     &GMainWindow::OnAppFocusStateChanged);
+
     int result = app.exec();
     detached_tasks.WaitForAllTasks();
     return result;

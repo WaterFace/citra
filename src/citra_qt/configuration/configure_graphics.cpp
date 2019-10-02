@@ -37,6 +37,21 @@ ConfigureGraphics::ConfigureGraphics(QWidget* parent)
         }
     });
 #endif
+
+    connect(ui->render_3d_combobox,
+            static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
+            [this](int currentIndex) {
+                updateShaders(static_cast<Settings::StereoRenderOption>(currentIndex) ==
+                              Settings::StereoRenderOption::Anaglyph);
+            });
+
+    connect(ui->bg_button, &QPushButton::clicked, this, [this] {
+        const QColor new_bg_color = QColorDialog::getColor(bg_color);
+        if (!new_bg_color.isValid()) {
+            return;
+        }
+        UpdateBackgroundColorButton(new_bg_color);
+    });
 }
 
 ConfigureGraphics::~ConfigureGraphics() = default;
@@ -47,6 +62,15 @@ void ConfigureGraphics::SetConfiguration() {
     ui->toggle_accurate_mul->setChecked(Settings::values.shaders_accurate_mul);
     ui->toggle_shader_jit->setChecked(Settings::values.use_shader_jit);
     ui->toggle_disk_cache->setChecked(Settings::values.use_disk_shader_cache);
+    ui->resolution_factor_combobox->setCurrentIndex(Settings::values.resolution_factor);
+    ui->render_3d_combobox->setCurrentIndex(static_cast<int>(Settings::values.render_3d));
+    ui->factor_3d->setValue(Settings::values.factor_3d);
+    updateShaders(Settings::values.render_3d == Settings::StereoRenderOption::Anaglyph);
+    ui->toggle_linear_filter->setChecked(Settings::values.filter_mode);
+    ui->layout_combobox->setCurrentIndex(static_cast<int>(Settings::values.layout_option));
+    ui->swap_screen->setChecked(Settings::values.swap_screen);
+    UpdateBackgroundColorButton(QColor::fromRgbF(Settings::values.bg_red, Settings::values.bg_green,
+                                                 Settings::values.bg_blue));
 }
 
 void ConfigureGraphics::ApplyConfiguration() {
@@ -55,6 +79,16 @@ void ConfigureGraphics::ApplyConfiguration() {
     Settings::values.shaders_accurate_mul = ui->toggle_accurate_mul->isChecked();
     Settings::values.use_shader_jit = ui->toggle_shader_jit->isChecked();
     Settings::values.use_disk_shader_cache = ui->toggle_disk_cache->isChecked();
+}
+
+void ConfigureGraphics::UpdateBackgroundColorButton(const QColor& color) {
+    bg_color = color;
+
+    QPixmap pixmap(ui->bg_button->size());
+    pixmap.fill(bg_color);
+
+    const QIcon color_icon(pixmap);
+    ui->bg_button->setIcon(color_icon);
 }
 
 void ConfigureGraphics::RetranslateUI() {

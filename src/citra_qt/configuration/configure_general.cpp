@@ -30,6 +30,7 @@ void ConfigureGeneral::SetConfiguration() {
     ui->frame_limit->setValue(Settings::values.frame_limit);
 
     ui->toggle_check_exit->setChecked(UISettings::values.confirm_before_closing);
+    ui->toggle_background_pause->setChecked(UISettings::values.pause_when_in_background);
 
     ui->toggle_update_check->setChecked(UISettings::values.check_for_update_on_start);
     ui->toggle_auto_update->setChecked(UISettings::values.update_on_close);
@@ -60,6 +61,7 @@ void ConfigureGeneral::ApplyConfiguration() {
     Settings::values.frame_limit = ui->frame_limit->value();
 
     UISettings::values.confirm_before_closing = ui->toggle_check_exit->isChecked();
+    UISettings::values.pause_when_in_background = ui->toggle_background_pause->isChecked();
 
     UISettings::values.check_for_update_on_start = ui->toggle_update_check->isChecked();
     UISettings::values.update_on_close = ui->toggle_auto_update->isChecked();
